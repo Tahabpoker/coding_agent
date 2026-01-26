@@ -37,14 +37,15 @@ class LLMClient:
         # changes to feature/chat-completion branch will change branch name in future  
         # attempt at implementing Error Handling types "RateLimit Error", "Connection Error", "API Error"
         # in case of error/issues attempt till max tries is depleted or receive a response  
+        client = self.get_client()
+        kwargs = {
+            "model":"mistralai/devstral-2512:free", 
+            "messages": messages,
+            "stream": stream,
+        }
         for attempt in range(self._max_retries + 1):
             try:      
-                client = self.get_client()
-                kwargs = {
-                    "model":"mistralai/devstral-2512:free", 
-                    "messages": messages,
-                    "stream": stream,
-                }
+                
                 if stream:
                     async for event in self._stream_response(client=client, kwargs=kwargs):
                         yield event
@@ -53,6 +54,8 @@ class LLMClient:
                     yield event
                 return
             except RateLimitError as e:
+                # printing aout if trying/attempting to get a response
+                print("trying again")
                 if attempt < self._max_retries:
                     wait_time = 2 ** attempt
                     await asyncio.sleep(wait_time)
@@ -63,6 +66,7 @@ class LLMClient:
                     )
                     return
             except APIConnectionError as e:
+                print("trying again")
                 if attempt < self._max_retries:
                     wait_time = 2 ** attempt
                     await asyncio.sleep(wait_time)
