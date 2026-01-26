@@ -34,9 +34,51 @@ class LLMClient:
             messages: list[dict[str, Any]], 
             stream: bool = True
     )-> AsyncGenerator[StreamEvent, None]:
-        
-            
-
+        # changes to feature/chat-completion branch will change branch name in future  
+        # attempt at implementing Error Handling types "RateLimit Error", "Connection Error", "API Error"
+        # in case of error/issues attempt till max tries is depleted or receive a response  
+        for attempt in range(self._max_retries + 1):
+            try:      
+                client = self.get_client()
+                kwargs = {
+                    "model":"mistralai/devstral-2512:free", 
+                    "messages": messages,
+                    "stream": stream,
+                }
+                if stream:
+                    async for event in self._stream_response(client=client, kwargs=kwargs):
+                        yield event
+                else:
+                    event = await self._non_stream_response(client=client, kwargs=kwargs)
+                    yield event
+                return
+            except RateLimitError as e:
+                if attempt < self._max_retries:
+                    wait_time = 2 ** attempt
+                    await asyncio.sleep(wait_time)
+                else:
+                    yield StreamEvent(
+                        type=EventType.ERROR,
+                        error=f"Rate limit exceeded: {e}",
+                    )
+                    return
+            except APIConnectionError as e:
+                if attempt < self._max_retries:
+                    wait_time = 2 ** attempt
+                    await asyncio.sleep(wait_time)
+                else:
+                    yield StreamEvent(
+                        type=EventType.ERROR,
+                        error=f"Connection Error: {e}",
+                    )
+                    return
+            except APIError as e:
+                yield StreamEvent(
+                    type=EventType.ERROR,
+                    error=f"API Error: {e}",
+                )
+                return 
+    
     async def _stream_response(self, 
                                client: AsyncOpenAI, 
                                kwargs: dict[str, Any]
