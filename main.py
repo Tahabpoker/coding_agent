@@ -26,5 +26,5 @@ def main(
     messages = [{"role": "user", "content": prompt}]
     asyncio.run(run(message=messages)) # type: ignore
     print("Done")
-
+# lol
 main()
