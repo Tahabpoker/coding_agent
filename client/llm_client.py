@@ -1,7 +1,8 @@
 import asyncio
 from typing import AsyncGenerator
 from typing import Any
-from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
+from openai import APIConnectionError, APIError
+from openai import AsyncOpenAI, RateLimitError
 from dotenv import load_dotenv
 import os
 
