@@ -38,8 +38,8 @@ class AgentEvent:
         return cls(
             type = AgentEventType.AGENT_END,
             data = {
-                "response" : response, "usage" : 
-                usage.__dict__ if usage else None
+                "response" : response,
+                "usage" : usage.__dict__ if usage else None
             },
         )
     
