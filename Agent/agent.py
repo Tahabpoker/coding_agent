@@ -37,7 +37,7 @@ class Agent:
                 ) # type: ignore
 
         if response_text:
-            yield AgentEvent.text_complete(response_text)
+            yield AgentEvent.text_complete(response_text) # type: ignore
 
     async def __aenter__(self) -> Agent:
         return self
