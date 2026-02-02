@@ -37,3 +37,7 @@ class StreamEvent:
     error: str | None = None
     finish_reason: str | None = None
     usage: TokenUsage | None = None
+
+
+
+# changes to delete
