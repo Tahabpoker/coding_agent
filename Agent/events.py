@@ -69,14 +69,6 @@ class AgentEvent:
             data = {"content" : content},
         )
 
-     @classmethod
-    # text complete
-    def text_testing(cls, content: str) -> AgentEvent:
-        return cls(
-            type = AgentEventType.TEXT_COMPLETE,
-            data = {"content" : content},
-        )
-        
     @classmethod
     # text complete
     def text_complete(cls, content: str) -> AgentEvent:
