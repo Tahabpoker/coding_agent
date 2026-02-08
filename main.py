@@ -31,5 +31,4 @@ def main(
     if prompt:
         async.run(cli.run_single(prompt))
 
-if __name__ == "__main__":
-    main()
+main()
