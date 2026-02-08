@@ -31,4 +31,5 @@ def main(
     if prompt:
         async.run(cli.run_single(prompt))
 
-main()
+if __name__ == "__main__":
+    asyncio.run(main())
