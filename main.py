@@ -32,4 +32,4 @@ def main(
         async.run(cli.run_single(prompt))
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
