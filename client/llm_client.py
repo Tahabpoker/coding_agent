@@ -40,7 +40,7 @@ class LLMClient:
         # in case of error/issues attempt till max tries is depleted or receive a response  
         client = self.get_client()
         kwargs = {
-            "model":"mistralai/devstral-2512:free", 
+            "model":"openrouter/free", 
             "messages": messages,
             "stream": stream,
         }

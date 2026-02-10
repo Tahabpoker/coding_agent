@@ -1,5 +1,7 @@
 import asyncio
+import sys
 import click
+
 from typing import Any
 from Agent.agent import Agent
 from Agent.events import AgentEventType
@@ -12,10 +14,11 @@ class CLI:
         self.agent: Agent | None = None
         self.tui = TUI(console)
     
-    def run_single(self, message):
+    async def run_single(self, message: str) -> str | None:
         async with Agent() as agent:
             self.agent = agent
-            self._process_message(message) # type: ignore
+            return await self._process_message(message) # type: ignore
+    
     async def _process_message(self, message: str)-> str | None:
         if not self.agent:
             return None
@@ -33,6 +36,7 @@ def main(
     print(prompt)
     # messages = [{"role": "user", "content": prompt}]
     if prompt:
-        async.run(cli.run_single(prompt))
-
+        result = asyncio.run(cli.run_single(prompt))
+        if result is None:
+            sys.exit(1)
 main()

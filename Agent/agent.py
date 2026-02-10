@@ -26,9 +26,9 @@ class Agent:
        
         response_text = ""
 
-        async for event in client.chat_completion(messages=messages, stream=True): # type: ignore
+        async for event in self.client.chat_completion(messages=messages, stream=True): # type: ignore
             if event.type == StreamEventType.TEXT_DELTA:
-                content = event.text_delta.content
+                content = event.text_delta.content # type: ignore
                 response_text += content
                 yield AgentEvent.text_delta(content=content) 
             elif event.type == StreamEventType.ERROR:
