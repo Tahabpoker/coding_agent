@@ -3,10 +3,14 @@ import click
 from typing import Any
 from Agent.agent import Agent
 from Agent.events import AgentEventType
+from ui.tui import TUI, get_console
+
+console = get_console()
 
 class CLI:
     def __init__(self) -> None:
         self.agent: Agent | None = None
+        self.tui = TUI(console)
     
     def run_single(self, message):
         async with Agent() as agent:
@@ -18,7 +22,7 @@ class CLI:
         async for event in self.agent.run(message=message):
             if event.type == AgentEventType.TEXT_DELTA:
                 content = event.data.get("content", "")
-
+                self.tui.stream_assistant_delta(content=content)
 
 @click.command()
 @click.argument("prompt", required=False)
