@@ -18,10 +18,12 @@ class AgentEventType(str,Enum):
 
 @dataclass
 class AgentEvent:
+    # agent event
     type: AgentEventType
     data: dict[str,Any] = field(default_factory=dict)
 
     @classmethod
+    # agent start
     def agent_start(cls, message: str) -> AgentEvent:
         return cls(
             type = AgentEventType.AGENT_START,
@@ -30,6 +32,7 @@ class AgentEvent:
 
     
     @classmethod
+    # agent end
     def agent_end(
         cls,
         response: str | None = None, 
@@ -44,6 +47,7 @@ class AgentEvent:
         )
     
     @classmethod
+    # agent error
     def agent_error (
             cls,
             error: str, 
@@ -58,13 +62,15 @@ class AgentEvent:
         )
     
     @classmethod
+    # text delta
     def text_delta(cls, content: str) -> AgentEvent:
         return cls(
             type = AgentEventType.TEXT_DELTA,
             data = {"content" : content},
         )
-    
+
     @classmethod
+    # text complete
     def text_complete(cls, content: str) -> AgentEvent:
         return cls(
             type = AgentEventType.TEXT_COMPLETE,
