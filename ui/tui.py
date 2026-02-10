@@ -11,8 +11,6 @@ AGENT_THEME = Theme(
         "dim": "dim",
         "muted": "grey50",
         "border": "grey37",
-<<<<<<< Updated upstream
-=======
         "highlight": "bold cyan",
         
         # Roles with enhanced styling
@@ -43,7 +41,6 @@ AGENT_THEME = Theme(
         "status.failed": "bright_red",
         
         # Highlights and emphasis
->>>>>>> Stashed changes
         "highlight": "bold cyan",
         #Roles
         "user": "bright_blue bold",
