@@ -83,6 +83,7 @@ def main(
     cli = CLI()
     # Echo the prompt (kept from original behavior).
     print(prompt)
+     # messages = [{"role": "user", "content": prompt}]
     # If a prompt was provided, run the agent synchronously via asyncio.run.
     if prompt:
         result = asyncio.run(cli.run_single(prompt))
