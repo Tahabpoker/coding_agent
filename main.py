@@ -93,4 +93,6 @@ def main(
 
 # Invoke the click command when the module is executed.
 main()
-# ...existing code...
+
+# update: due to upcoming exams will not be able to work on this project for the next 1, will try to push some updates when possible but no promises.
+# date: 15-02-2024 only comments and docstrings were added to the main.py file, no runtime logic changes were made. will continue this till exam is done    
