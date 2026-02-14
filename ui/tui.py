@@ -75,14 +75,14 @@ AGENT_THEME = Theme(
         "accent": "bright_cyan",
     }
 )
-
+# Centralized console instance for the TUI, initialized with the AGENT_THEME.
 _console: Console  | None = None
 def get_console() ->Console:
     global _console
     if _console is None:
         _console = Console(theme=AGENT_THEME, highlight=False) 
     return _console
-
+# TUI class responsible for rendering output to the console, utilizing the centralized console instance with the defined theme.
 class TUI:
     def __init__(
             self,
