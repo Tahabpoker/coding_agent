@@ -1,7 +1,6 @@
 vid.*
 
 # Byte-compiled / optimized / DLL files
-client\__pycache__
 __pycache__
 __pycache__/
 *.py[cod]
