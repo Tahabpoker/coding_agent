@@ -35,7 +35,9 @@ class LLMClient:
             messages: list[dict[str, Any]], 
             stream: bool = True
     )-> AsyncGenerator[StreamEvent, None]:
-        # changes to feature/chat-completion branch will change branch name in future  
+        # changes to feature/chat-completion branch will change branch name in future
+        # date: 15-02 changes to branch name successfull 
+        # changed to include error handling and retry logic for robustness  
         # attempt at implementing Error Handling types "RateLimit Error", "Connection Error", "API Error"
         # in case of error/issues attempt till max tries is depleted or receive a response  
         client = self.get_client()
