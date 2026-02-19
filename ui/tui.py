@@ -93,4 +93,6 @@ class TUI:
     
     def stream_assistant_delta(self, content: str) -> None:
         self.console.print(content, end = "", markup=False)
-        
+
+
+# check this out
