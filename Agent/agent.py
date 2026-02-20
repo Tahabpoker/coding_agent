@@ -88,13 +88,14 @@ class Agent:
 
             # Handle incremental text tokens
             if event.type == StreamEventType.TEXT_DELTA:
-                content = event.text_delta.content  # type: ignore
+                if event.text_delta:
+                    content = event.text_delta.content  # type: ignore
 
-                # Append incoming token to full response buffer
-                response_text += content
+                    # Append incoming token to full response buffer
+                    response_text += content
 
-                # Emit partial text to consumers
-                yield AgentEvent.text_delta(content=content)
+                    # Emit partial text to consumers
+                    yield AgentEvent.text_delta(content=content)
 
             # Handle streaming error events
             elif event.type == StreamEventType.ERROR:
