@@ -51,7 +51,7 @@ class AgentEvent:
     def agent_error (
             cls,
             error: str, 
-            details: dict[str, Any]
+            details: dict[str, Any] | None = None
     ) -> AgentEvent:
         return cls(
             type = AgentEventType.AGENT_ERROR,

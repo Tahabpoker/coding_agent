@@ -9,7 +9,6 @@ class TextDelta:
     def __srt__(self):
         return self.content
 
-@dataclass
 class StreamEventType(str, Enum):
     TEXT_DELTA = "text_delta"
     MESSAGE_COMPLETE = "message_complete"
