@@ -51,11 +51,10 @@ class Agent:
         # NOTE:
         # Intended place to add the user message to conversation context.
         # Currently not implemented.
-
         # Execute the internal agent loop and forward events
+        final_response: str | None = None
         async for event in self._agentic_loop():
             yield event
-
             # Capture the final response once full text is complete
             if event.type == AgentEventType.TEXT_COMPLETE:
                 final_response = event.data.get("content")
@@ -106,7 +105,7 @@ class Agent:
         # After streaming completes, emit full response event
         if response_text:
             yield AgentEvent.text_complete(response_text)  # type: ignore
-
+ 
     async def __aenter__(self) -> Agent:
         """
         Async context manager entry.

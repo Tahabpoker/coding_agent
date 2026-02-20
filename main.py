@@ -31,7 +31,7 @@ class CLI:
             return None
         
         assistant_streaming = False
-
+        final_response: str | None = None
         # The agent yields events asynchronously; iterate and handle relevant ones.
         async for event in self.agent.run(message=message):
             if event.type == AgentEventType.TEXT_DELTA:
@@ -41,6 +41,16 @@ class CLI:
                     self.tui.begin_assistant()
                     assistant_streaming = True
                 self.tui.stream_assistant_delta(content=content)
+            elif event.type == AgentEventType.TEXT_COMPLETE:
+                final_response = event.data.get("content", "")
+                if assistant_streaming:
+                    assistant_streaming = False
+                    self.tui.end_assistant()
+            elif event.type == AgentEventType.AGENT_ERROR:
+                error = event.data.get("error", "unknown error")
+                # console.print(error, style="error") # use this when markup is disabled in tui.py: _console
+                console.print(f"\n[error]Error: {error}[/error]")    
+        return final_response # type: ignore
 
 # CLI entrypoint using click.
 @click.command()
@@ -48,7 +58,7 @@ class CLI:
 def main(
     prompt:str | None = None
 ):
-    print(f"starting program")
+    # print(f"starting program") # debug statements
     cli = CLI()
     # Echo the prompt (kept from original behavior).
     print(prompt)
@@ -59,7 +69,7 @@ def main(
         if result is None:
             # Non-zero exit code indicates a processing failure.
             sys.exit(1)
-    print(f"program end")
+    # print(f"program end") # debug statements
 
 # Invoke the click command when the module is executed.
 main()

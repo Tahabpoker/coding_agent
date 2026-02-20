@@ -13,43 +13,14 @@ AGENT_THEME = Theme(
         "muted": "grey50",
         "border": "grey37",
         "highlight": "bold cyan",
-        
-        # Roles with enhanced styling
-        "user": "bright_blue bold",
-        # "user.label": "bright_blue",
-        "assistant": "bright_white",
-        # "assistant.label": "bright_white dim",
-        
-        # Tools with consistent hierarchy
-        "tool": "bright_magenta bold",
-        "tool.read": "cyan bold",
-        "tool.write": "bright_yellow bold",
-        "tool.shell": "magenta bold",
-        "tool.network": "bright_blue bold",
-        "tool.memory": "green bold",
-        "tool.mcp": "bright_cyan bold",
-        
-        # Code blocks and syntax
-        "code": "white",
-        "code.bracket": "grey66",
-        "code.string": "bright_green",
-        "code.keyword": "bright_magenta",
-        
-        # Status indicators
-        "status.pending": "yellow dim",
-        "status.running": "cyan bold",
-        "status.completed": "green bold",
-        "status.failed": "bright_red",
-        
-        # Highlights and emphasis
-        "highlight": "bold cyan",
-        #Roles
+
+        # Roles
         "user": "bright_blue bold",
         "user.label": "bright_blue",
         "assistant": "bright_white",
         "assistant.label": "bright_white dim",
-        
-        # Tools with consistent hierarchy
+
+        # Tools
         "tool": "bright_magenta bold",
         "tool.read": "cyan bold",
         "tool.write": "bright_yellow bold",
@@ -57,21 +28,20 @@ AGENT_THEME = Theme(
         "tool.network": "bright_blue bold",
         "tool.memory": "green bold",
         "tool.mcp": "bright_cyan bold",
-        
+
         # Code blocks and syntax
         "code": "white",
         "code.bracket": "grey66",
         "code.string": "bright_green",
         "code.keyword": "bright_magenta",
-        
+
         # Status indicators
         "status.pending": "yellow dim",
         "status.running": "cyan bold",
         "status.completed": "green bold",
         "status.failed": "bright_red",
-        
+
         # Highlights and emphasis
-        "highlight": "bold cyan",
         "emphasis": "bold white",
         "accent": "bright_cyan",
     }
@@ -97,6 +67,11 @@ class TUI:
         self.console.print()
         self.console.print(Rule(Text("Assistant", style="assistant")))
         self._assistant_stream_open = True
+
+    def end_assistant(self) -> None:
+        if self._assistant_stream_open:
+            self.console.print()
+        self._assistant_stream_open = False
 
     def stream_assistant_delta(self, content: str) -> None:
         self.console.print(content, end = "", markup=False)
