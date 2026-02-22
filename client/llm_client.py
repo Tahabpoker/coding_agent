@@ -42,7 +42,7 @@ class LLMClient:
         # in case of error/issues attempt till max tries is depleted or receive a response  
         client = self.get_client()
         kwargs = {
-            "model":"z-ai/glm-4.5-air:free", 
+            "model":"openrouter/free", 
             "messages": messages,
             "stream": stream,
         }
