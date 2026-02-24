@@ -63,18 +63,15 @@ class Agent:
         yield AgentEvent.agent_end(final_response)  # type: ignore
 
     async def _agentic_loop(self) -> AsyncGenerator[AgentEvent, None]:
-        """
-        Core internal loop responsible for:
+        # Core internal loop responsible for:
 
-        - Sending messages to the LLM client
-        - Streaming partial responses
-        - Emitting structured AgentEvents
+        # - Sending messages to the LLM client
+        # - Streaming partial responses
+        # - Emitting structured AgentEvents
 
-        Returns:
-        --------
-        AsyncGenerator[AgentEvent, None]
-            Yields AgentEvent objects during the streaming lifecycle.
-        """
+        # Returns:
+        # AsyncGenerator[AgentEvent, None]
+            # Yields AgentEvent objects during the streaming lifecycle.
 
         # Hardcoded user message (placeholder for dynamic context handling)
         messages = [{"role": "user", "content": "hey what is going on"}]
