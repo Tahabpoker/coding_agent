@@ -1,133 +1,180 @@
 from __future__ import annotations
-from typing import AsyncGenerator
-from Agent.events import AgentEvent, AgentEventType
-from client.llm_client import LLMClient
-from client.response import StreamEventType
+from typing import AsyncGenerator, Awaitable, Callable
+from agent.events import AgentEvent, AgentEventType
+from agent.session import Session
+from client.response import StreamEventType, TokenUsage, ToolCall, ToolResultMessage
+from config.config import Config
+from prompts.system import create_loop_breaker_prompt
+from tools.base import ToolConfirmation
 
 
 class Agent:
-    """
-    Agent responsible for orchestrating the interaction between the user
-    and the LLM client.
-
-    This class:
-    - Emits high-level AgentEvents
-    - Streams responses from the LLM
-    - Converts low-level stream events into agent-level events
-    - Manages lifecycle of the LLM client
-    """
-
-    def __init__(self) -> None:
-        """
-        Initialize the Agent.
-
-        Creates an instance of LLMClient that will be used
-        to communicate with the underlying language model.
-        """
-        self.client = LLMClient()
+    def __init__(
+        self,
+        config: Config,
+        confirmation_callback: Callable[[ToolConfirmation], bool] | None = None,
+    ):
+        self.config = config
+        self.session: Session | None = Session(self.config)
+        self.session.approval_manager.confirmation_callback = confirmation_callback
 
     async def run(self, message: str):
-        """
-        Entry point for executing the agent workflow.
+        await self.session.hook_system.trigger_before_agent(message)
+        yield AgentEvent.agent_start(message)
+        self.session.context_manager.add_user_message(message)
 
-        Parameters:
-        -----------
-        message : str
-            The user input message to process.
-
-        Yields:
-        -------
-        AgentEvent
-            Stream of AgentEvents representing:
-            - Agent start
-            - Streaming text deltas
-            - Completion
-            - Agent end
-        """
-
-        # Emit event indicating the agent has started processing
-        yield AgentEvent.agent_start(message=message)
-
-        # NOTE:
-        # Intended place to add the user message to conversation context.
-        # Currently not implemented.
-        # Execute the internal agent loop and forward events
         final_response: str | None = None
+
         async for event in self._agentic_loop():
             yield event
-            # Capture the final response once full text is complete
+
             if event.type == AgentEventType.TEXT_COMPLETE:
                 final_response = event.data.get("content")
 
-        # Emit final agent end event with the complete response
-        yield AgentEvent.agent_end(final_response)  # type: ignore
+        await self.session.hook_system.trigger_after_agent(message, final_response)
+        yield AgentEvent.agent_end(final_response)
 
     async def _agentic_loop(self) -> AsyncGenerator[AgentEvent, None]:
-        """
-        Core internal loop responsible for:
+        max_turns = self.config.max_turns
 
-        - Sending messages to the LLM client
-        - Streaming partial responses
-        - Emitting structured AgentEvents
+        for turn_num in range(max_turns):
+            self.session.increment_turn()
+            response_text = ""
 
-        Returns:
-        --------
-        AsyncGenerator[AgentEvent, None]
-            Yields AgentEvent objects during the streaming lifecycle.
-        """
+            # check for context overflow
+            if self.session.context_manager.needs_compression():
+                summary, usage = await self.session.chat_compactor.compress(
+                    self.session.context_manager
+                )
 
-        # Hardcoded user message (placeholder for dynamic context handling)
-        messages = [{"role": "user", "content": "hey what is going on"}]
+                if summary:
+                    self.session.context_manager.replace_with_summary(summary)
+                    self.session.context_manager.set_latest_usage(usage)
+                    self.session.context_manager.add_usage(usage)
 
-        # Accumulator for building the complete response from streamed chunks
-        response_text = ""
+            tool_schemas = self.session.tool_registry.get_schemas()
 
-        # Stream completion from the LLM client
-        async for event in self.client.chat_completion(messages=messages, stream=True):  # type: ignore
+            tool_calls: list[ToolCall] = []
+            usage: TokenUsage | None = None
 
-            # Handle incremental text tokens
-            if event.type == StreamEventType.TEXT_DELTA:
-                if event.text_delta:
-                    content = event.text_delta.content  # type: ignore
+            async for event in self.session.client.chat_completion(
+                self.session.context_manager.get_messages(),
+                tools=tool_schemas if tool_schemas else None,
+            ):
+                if event.type == StreamEventType.TEXT_DELTA:
+                    if event.text_delta:
+                        content = event.text_delta.content
+                        response_text += content
+                        yield AgentEvent.text_delta(content)
+                elif event.type == StreamEventType.TOOL_CALL_COMPLETE:
+                    if event.tool_call:
+                        tool_calls.append(event.tool_call)
+                elif event.type == StreamEventType.ERROR:
+                    yield AgentEvent.agent_error(
+                        event.error or "Unknown error occurred.",
+                    )
+                elif event.type == StreamEventType.MESSAGE_COMPLETE:
+                    usage = event.usage
 
-                    # Append incoming token to full response buffer
-                    response_text += content
+            self.session.context_manager.add_assistant_message(
+                response_text or None,
+                (
+                    [
+                        {
+                            "id": tc.call_id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.name,
+                                "arguments": str(tc.arguments),
+                            },
+                        }
+                        for tc in tool_calls
+                    ]
+                    if tool_calls
+                    else None
+                ),
+            )
+            if response_text:
+                yield AgentEvent.text_complete(response_text)
+                self.session.loop_detector.record_action(
+                    "response",
+                    text=response_text,
+                )
 
-                    # Emit partial text to consumers
-                    yield AgentEvent.text_delta(content=content)
+            if not tool_calls:
+                if usage:
+                    self.session.context_manager.set_latest_usage(usage)
+                    self.session.context_manager.add_usage(usage)
 
-            # Handle streaming error events
-            elif event.type == StreamEventType.ERROR:
-                yield AgentEvent.agent_error(
-                    event.error or "unknown error occured",
-                )  # type: ignore
+                self.session.context_manager.prune_tool_outputs()
+                return
 
-        # After streaming completes, emit full response event
-        if response_text:
-            yield AgentEvent.text_complete(response_text)  # type: ignore
- 
+            tool_call_results: list[ToolResultMessage] = []
+
+            for tool_call in tool_calls:
+                yield AgentEvent.tool_call_start(
+                    tool_call.call_id,
+                    tool_call.name,
+                    tool_call.arguments,
+                )
+
+                self.session.loop_detector.record_action(
+                    "tool_call",
+                    tool_name=tool_call.name,
+                    args=tool_call.arguments,
+                )
+
+                result = await self.session.tool_registry.invoke(
+                    tool_call.name,
+                    tool_call.arguments,
+                    self.config.cwd,
+                    self.session.hook_system,
+                    self.session.approval_manager,
+                )
+
+                yield AgentEvent.tool_call_complete(
+                    tool_call.call_id,
+                    tool_call.name,
+                    result,
+                )
+
+                tool_call_results.append(
+                    ToolResultMessage(
+                        tool_call_id=tool_call.call_id,
+                        content=result.to_model_output(),
+                        is_error=not result.success,
+                    )
+                )
+
+            for tool_result in tool_call_results:
+                self.session.context_manager.add_tool_result(
+                    tool_result.tool_call_id,
+                    tool_result.content,
+                )
+
+            loop_detection_error = self.session.loop_detector.check_for_loop()
+            if loop_detection_error:
+                loop_prompt = create_loop_breaker_prompt(loop_detection_error)
+                self.session.context_manager.add_user_message(loop_prompt)
+
+            if usage:
+                self.session.context_manager.set_latest_usage(usage)
+                self.session.context_manager.add_usage(usage)
+
+            self.session.context_manager.prune_tool_outputs()
+        yield AgentEvent.agent_error(f"Maximum turns ({max_turns}) reached")
+
     async def __aenter__(self) -> Agent:
-        """
-        Async context manager entry.
-
-        Allows usage:
-            async with Agent() as agent:
-                ...
-        """
+        await self.session.initialize()
         return self
 
     async def __aexit__(
-            self, 
-            exc_type, 
-            exc_val, 
-            exc_tb,
+        self,
+        exc_type,
+        exc_val,
+        exc_tb,
     ) -> None:
-        """
-        Async context manager exit.
-
-        Ensures that the LLM client connection is properly closed
-        and resources are released.
-        """
-        if self.client:
-            await self.client.close()
-            self.client = None
+        if self.session and self.session.client and self.session.mcp_manager:
+            await self.session.client.close()
+            await self.session.mcp_manager.shutdown()
+            self.session = None
